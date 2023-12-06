@@ -5,64 +5,20 @@ import numpy as np
 
 from ete3 import NCBITaxa, Tree, TreeStyle, faces, AttrFace, TextFace, NodeStyle
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--data', type=str,
-                        help='datasets file')
-    parser.add_argument('-p', '--pcr', type=str,
-                        help='list of hit accessions')
-    parse.add_argument('-t', '--target', type=int,
-                        help= 'target taxid')
-    parser.add_argument('-n', '--name', type=str,
-                        help='assay name')
+ncbi = NCBITaxa()
 
-    args = parser.parse_args()
-    data_file = args.data
-    pcr_file = args.pcr
-    target_taxid = args.target
-    assay_name = args.name
+def parse_acc(file):
+    '''
+    Returns a list of accession numbers given a .txt file
+    '''
+    # Open the file in read mode
+    with open(file, 'r') as file:
+        # Read the lines from the file
+        lines = file.readlines()
 
-    # run 
-
-    # image title
-    imagetitle = assay_name + " Visualization"
-    # image filename
-    imagefile = assay_name + "_Validation.png"
-    # tsv filename
-    csvfile = assay_name + "Validation_Table.tsv"
-
-    # parse pcr file 
-    pcr_acc = get_pcr_acc(pcr_file)
-    # parse datasets file
-    data = load_data(data_file, pcr_acc)
-    # count data for taxids
-    counts = count_data(data)
-    # collapse data by species level 
-    counts = collapse_data(counts)
-    
-    # create tree
-    tree = create_tree(counts)
-
-    # save outputs
-    save_tree(tree, show, imagetitle, imagefile)
-    save_tsv(counts, csvfile)
-
-
-
-if __name__ == '__main__':
-    main()
-
-# returns list of accession numbers of hits from simPCR file 
-def get_pcr_acc(file):
-    # read sim_pcr data
-    data = pd.read_csv(file, sep='\t')
-    
-    # get list of pcr hits
-    acc = pd.DataFrame()
-    acc['Accession'] = data['Full_Hit_ID'].apply(lambda r: str(r).split(' ')[0])
-    acc.drop_duplicates(subset=["Accession"], keep='first')
-    
-    return acc["Accession"].tolist()
+    # Remove leading and trailing whitespaces from each line and create a list
+    accessions = [line.strip() for line in lines]
+    return accessions
 
 # return df with accession number, taxid, and if the strain was hit by assay for all potential assay targets 
 # file: datatsets file 
@@ -90,6 +46,20 @@ def count_data(df):
     counts.columns = ['Virus Taxonomic ID', 'Total','Hits']
     return counts
 
+def valid_taxid(taxid):
+    try:
+        lineage = ncbi.get_lineage(taxid)
+        return True  # TaxID exists
+    except ValueError:
+        return False  # TaxID does not exist
+
+def find_target(lineage, target):
+    try:
+        index = lineage.index(target)
+        return index
+    except ValueError:
+        return -1
+
 def find_collapse_to(taxid, target):
     if not valid_taxid(taxid):
         return np.nan
@@ -101,8 +71,11 @@ def find_collapse_to(taxid, target):
         return taxid 
     return lineage[index + 1]
 
-def collapse_data(df):
+def collapse_data(df, target_taxid):
     '''Returns new dataframe collapsing at species level'''
+    def collapse_to(taxid):
+        return find_collapse_to(taxid, target_taxid)
+
     # add species taxid 
     df["Collapsed TaxID"] = df["Virus Taxonomic ID"].apply(collapse_to)
     
@@ -224,3 +197,50 @@ def save_tree(tree, style, title, filename):
     ts.title.add_face(TextFace(title, fsize=20), column=0)
     # save as file 
     tree.render(filename, tree_style=ts)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--data', type=str,
+                        help='datasets file')
+    parser.add_argument('-p', '--pcr', type=str,
+                        help='list of hit accessions')
+    parser.add_argument('-t', '--target', type=int,
+                        help= 'target taxid')
+    parser.add_argument('-n', '--name', type=str,
+                        help='assay name')
+
+    args = parser.parse_args()
+    data_file = args.data
+    pcr_file = args.pcr
+    target_taxid = args.target
+    assay_name = args.name
+
+    # run 
+
+    # image title
+    imagetitle = assay_name + " Visualization"
+    # image filename
+    imagefile = assay_name + "_Validation.png"
+    # tsv filename
+    csvfile = assay_name + "Validation_Table.tsv"
+
+    # parse pcr file 
+    pcr_acc = parse_acc(pcr_file)
+    # parse datasets file
+    data = load_data(data_file, pcr_acc)
+    # count data for taxids
+    counts = count_data(data)
+    # collapse data by species level 
+    counts = collapse_data(counts, target_taxid)
+    
+    # create tree
+    tree = create_tree(counts)
+
+    # save outputs
+    save_tree(tree, show, imagetitle, imagefile)
+    save_tsv(counts, csvfile)
+
+
+
+if __name__ == '__main__':
+    main()

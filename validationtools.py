@@ -53,7 +53,7 @@ def load_data(file, pcr_acc):
     data['Hit'] = data['Accession'].apply(lambda x: x in pcr_acc)
 
     # retreive collection year
-    data['Collection year'] = data['Isolate Collection date'].apply(get_year)
+    data['Collection year'] = data['Isolate Collection date'].apply(datasets_get_year)
 
     # return df w/ relevant columns
     return data[['Accession', 'Virus Taxonomic ID', 'Collection year', 'Hit']].copy()

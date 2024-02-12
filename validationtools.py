@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import ete3
+from ete3 import NCBITaxa
 
 ncbi = NCBI()
 

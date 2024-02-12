@@ -222,3 +222,41 @@ def get_ratio(hits, totals):
             # if denominator 0 
             ratios.append(np.nan)
     return ratios
+
+def count_years(df):
+    # collect all types of counts here
+    # Total Collection, Total Release, Hit Collection, Hit Release
+    all_df = []
+
+    # df of only hit accessions 
+    hit_df = df[df['Hit']]
+
+    # create and append df coutns for each type 
+    all_df.append(df[['Collection year']].value_counts().sort_index().to_frame()\
+                  .rename(columns={0: 'Total Collection'}))
+    all_df.append(df[['Release year']].value_counts().sort_index().to_frame()\
+                  .rename(columns={0:'Total Release'}))
+    all_df.append(hit_df[['Collection year']].value_counts().sort_index().to_frame()\
+                  .rename(columns={0:'Hit Collection'}))
+    all_df.append(hit_df[['Release year']].value_counts().sort_index().to_frame()\
+                  .rename(columns={0:'Hit Release'}))
+
+    counts = pd.concat(all_df, axis=1)
+
+    counts = counts.reset_index()
+    counts.set_index('level_0', inplace=True)
+    counts.index.name = 'Year'
+
+    counts.index = counts.index.astype(int)
+    min_year = counts.index[0]
+    max_year = counts.index[-1]
+    new_index = range(min_year, max_year+1)
+    counts = counts.reindex(new_index)
+
+    return counts
+
+def make_cumulative(counts):
+    cumulative = counts.fillna(0)
+    cumulative = cumulative.cumsum()
+    cumulative = cumulative.replace(0, np.nan)
+    return cumulative

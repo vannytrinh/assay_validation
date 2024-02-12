@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from ete3 import NCBITaxa
 
-ncbi = NCBI()
+ncbi = NCBITaxa()
 
 # --- FUNCTIONS TO PARSE DATA ---
 

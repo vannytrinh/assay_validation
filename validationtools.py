@@ -111,8 +111,9 @@ def find_collapse_to(taxid, target):
     # find where the target is in the lineage 
     index = find_target(lineage, target)
     # if taxid is not in lineage, do not collapse 
+    # will be removed later 
     if index == -1:
-        return taxid
+        return -1
     # if taxid is in lineage but is last in lineage
     # return original taxid 
     if index + 1 >= len(lineage):
@@ -130,7 +131,7 @@ def collapse_data(df, target_taxid):
     def collapse_to(taxid):
         return find_collapse_to(taxid, target_taxid)
 
-    # define taxid to collapse data to  
+    # determine taxid to collapse data to  
     df["Collapsed TaxID"] = df["Virus Taxonomic ID"].apply(collapse_to)
 
     # rows to remove bc they have been added to a different level to collapse to
@@ -138,8 +139,11 @@ def collapse_data(df, target_taxid):
 
     # parse through all rows in df
     for index, row in df.iterrows():
+        # remove rows not under target family 
+        if row['Collapsed TaxID'] == -1: 
+            rows_to_delete.append(index)
         # if curr taxid =/= taxid we want to collapse to 
-        if row['Collapsed TaxID'] != row['Virus Taxonomic ID']:
+        elif row['Collapsed TaxID'] != row['Virus Taxonomic ID']:
             # find row of taxid we want to collapse to 
             matching_row = df[df['Virus Taxonomic ID'] == row['Collapsed TaxID']]
             # add curr row to be deleted later
@@ -169,6 +173,8 @@ def collapse_data(df, target_taxid):
     df['Virus'] = df["Virus Taxonomic ID"].apply(lambda x: ncbi.get_taxid_translator([x])[x])
     df = df.reset_index(drop=True)
     return df[["Virus", "Virus Taxonomic ID", "Hits", "Total"]]
+
+# --- FUNCTIONS FOR HEATMAP --- 
 
 # data: dataframe from count_data
 # years: list of years
@@ -222,6 +228,8 @@ def get_ratio(hits, totals):
             # if denominator 0 
             ratios.append(np.nan)
     return ratios
+
+# --- FUNCTIONS FOR TIMEPLOT ---
 
 def count_years(df):
     # collect all types of counts here

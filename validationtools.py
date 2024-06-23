@@ -32,13 +32,7 @@ def get_accessions(filepath):
 
     return acc["Accession"].tolist()
 
-# return df with accession number, taxid, and if the strain was hit by assay for all potential assay targets
-# file: datatsets file
-# pcr_acc: list of hit accessions
-def load_data(file, pcr_acc):
-    '''
-    Parse dataset file and indicate if accession was hit by assay 
-    '''
+def filter_data(file):
     # read in datasets file
     data = pd.read_csv(file, sep='\t')
 
@@ -48,7 +42,16 @@ def load_data(file, pcr_acc):
     data = data[~data['Isolate Collection date'].isna()]
     # filter for complete sequences
     data = data[data['Completeness'] == 'COMPLETE']
+    
+    return data
 
+# return df with accession number, taxid, and if the strain was hit by assay for all potential assay targets
+# df: datatsets dataframe
+# pcr_acc: list of hit accessions
+def assess_data(data, pcr_acc):
+    '''
+    Parse dataset file and indicate if accession was hit by assay 
+    '''
     # assign boolean if accession was hit
     data['Hit'] = data['Accession'].apply(lambda x: x in pcr_acc)
 
@@ -239,15 +242,14 @@ def count_years(df):
     # df of only hit accessions 
     hit_df = df[df['Hit']]
 
-    # create and append df coutns for each type 
     all_df.append(df[['Collection year']].value_counts().sort_index().to_frame()\
-                  .rename(columns={0: 'Total Collection'}))
+                  .rename(columns={'count': 'Total Collection'}))
     all_df.append(df[['Release year']].value_counts().sort_index().to_frame()\
-                  .rename(columns={0:'Total Release'}))
+                  .rename(columns={'count':'Total Release'}))
     all_df.append(hit_df[['Collection year']].value_counts().sort_index().to_frame()\
-                  .rename(columns={0:'Hit Collection'}))
+                  .rename(columns={'count':'Hit Collection'}))
     all_df.append(hit_df[['Release year']].value_counts().sort_index().to_frame()\
-                  .rename(columns={0:'Hit Release'}))
+                  .rename(columns={'count':'Hit Release'}))
 
     counts = pd.concat(all_df, axis=1)
 

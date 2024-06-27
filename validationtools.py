@@ -43,7 +43,7 @@ def filter_data(file):
     # filter for complete sequences
     data = data[data['Completeness'] == 'COMPLETE']
     
-    return data
+    return data.copy()
 
 # return df with accession number, taxid, and if the strain was hit by assay for all potential assay targets
 # df: datatsets dataframe

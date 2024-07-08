@@ -28,7 +28,7 @@ def get_accessions(filepath):
     # get list of pcr hits
     acc = pd.DataFrame()
     acc['Accession'] = data['Full_Hit_ID'].apply(lambda r: str(r).split(' ')[0])
-    acc.drop_duplicates(subset=["Accession"], keep='first')
+    acc = acc.drop_duplicates(subset=["Accession"], keep='first')
 
     return acc["Accession"].tolist()
 
@@ -52,15 +52,19 @@ def assess_data(data, pcr_acc):
     '''
     Parse dataset file and indicate if accession was hit by assay 
     '''
+
+    # make new copy of df 
+    df = data.copy()
+
     # assign boolean if accession was hit
-    data['Hit'] = data['Accession'].apply(lambda x: x in pcr_acc)
+    df['Hit'] = df['Accession'].apply(lambda x: x in pcr_acc)
 
     # retreive collection year
-    data['Collection year'] = data['Isolate Collection date'].apply(datasets_get_year)
-    data['Release year'] = data['Release date'].apply(datasets_get_year)
+    df['Collection year'] = df['Isolate Collection date'].apply(datasets_get_year)
+    df['Release year'] = df['Release date'].apply(datasets_get_year)
 
     # return df w/ relevant columns
-    return data[['Accession', 'Virus Taxonomic ID', 'Collection year', 'Release year', 'Hit']].copy()
+    return df[['Accession', 'Virus Taxonomic ID', 'Collection year', 'Release year', 'Hit']].copy()
 
 # --- FUNCTIONS TO ANALYZE DATA ---
 
